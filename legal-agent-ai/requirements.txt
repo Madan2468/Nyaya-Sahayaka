@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+pydantic
+langchain
+langchain-core
+langchain-community
+sentence-transformers
+faiss-cpu
+huggingface-hub
+python-dotenv
+pandas
+reportlab
+pdfkit
+requests
+python-multipart
