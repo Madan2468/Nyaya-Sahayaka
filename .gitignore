@@ -10,6 +10,8 @@ __pycache__/
 env/
 venv/
 .venv/
+legal-agent-ai/venv/
+legal-agent-ai/__pycache__/
 env.bak/
 venv.bak/
 
@@ -23,3 +25,6 @@ venv.bak/
 
 # Agent
 .agents/
+
+# Local Netlify folder
+.netlify
