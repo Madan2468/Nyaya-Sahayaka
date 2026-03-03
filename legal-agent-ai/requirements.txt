@@ -4,6 +4,7 @@ pydantic
 langchain
 langchain-core
 langchain-community
+langchain-huggingface
 sentence-transformers
 faiss-cpu
 huggingface-hub
@@ -13,3 +14,4 @@ reportlab
 pdfkit
 requests
 python-multipart
+google-generativeai

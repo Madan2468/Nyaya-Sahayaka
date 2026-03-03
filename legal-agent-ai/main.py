@@ -15,9 +15,14 @@ app = FastAPI(
 )
 
 # Allow CORS for the Next.js frontend
+ALLOWED_ORIGINS = os.environ.get(
+    "ALLOWED_ORIGINS",
+    "https://nayaya-sahayaka.netlify.app,http://localhost:3000"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict this to frontend URL
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
