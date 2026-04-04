@@ -42,15 +42,22 @@ export function LaptopScroll({ children }: LaptopScrollProps) {
           style={{ opacity: titleOpacity, y: titleY }}
           className="absolute w-full flex flex-col items-center justify-center text-center px-4 top-0 pt-[10vh] md:pt-[12vh] z-10"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-sm font-light mb-6 backdrop-blur-md">
-            The Future of Legal Assistance in India
-          </div>
-          <h1 className="text-6xl md:text-[6.5rem] font-bold tracking-tighter mb-4 leading-[1.05]">
-            Justice, <br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400">
-              Democratized.
-            </span>
-          </h1>
+          <motion.div
+            initial={{ opacity: 0, y: 40, filter: 'blur(20px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-col items-center"
+          >
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-indigo-500/40 bg-indigo-500/10 text-indigo-200 text-sm font-medium mb-8 backdrop-blur-md shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+              The Future of Legal Assistance in India
+            </div>
+            <h1 className="text-6xl md:text-[6.5rem] font-extrabold tracking-tighter mb-4 leading-[1.05] drop-shadow-2xl">
+              Justice, <br />
+              <span className="bg-clip-text text-transparent bg-gradient-to-b from-indigo-300 via-purple-400 to-indigo-600 drop-shadow-[0_0_40px_rgba(99,102,241,0.6)]">
+                Democratized.
+              </span>
+            </h1>
+          </motion.div>
         </motion.div>
 
         {/* 3D Laptop Container */}
@@ -59,13 +66,13 @@ export function LaptopScroll({ children }: LaptopScrollProps) {
           className="relative w-[90vw] md:w-[70vw] lg:w-[1000px] max-w-6xl aspect-[16/10]"
         >
           {/* Top bezel / screen casing */}
-          <div className="absolute inset-0 bg-[#0f111a] border-4 border-[#2a2d3c] rounded-[24px] shadow-2xl overflow-hidden flex flex-col items-center pt-2">
+          <div className="absolute inset-0 bg-[#0f111a] border-[3px] border-[#3a3d4c] rounded-[24px] shadow-[0_0_100px_rgba(99,102,241,0.3)] overflow-hidden flex flex-col items-center pt-2 backdrop-blur-xl">
 
             {/* Webcam dot */}
-            <div className="w-2 h-2 bg-[#1a1c23] rounded-full mb-2" />
+            <div className="w-2 h-2 bg-black rounded-full mb-2 shadow-[inset_0_2px_4px_rgba(0,0,0,1)]" />
 
             {/* The actual Screen Content area */}
-            <div className="relative w-[98%] max-w-[960px] h-full mb-4 bg-[#0a0c10] rounded-xl overflow-hidden border border-[#2a2d3c]/50">
+            <div className="relative w-[98%] max-w-[960px] h-full mb-4 bg-[#030305]/90 rounded-[14px] overflow-hidden border border-white/10 shadow-[inset_0_0_80px_rgba(99,102,241,0.05)] backdrop-blur-2xl">
               {children}
             </div>
 
@@ -146,17 +153,18 @@ export function ScrollContentBlocks({ scrollYProgress }: { scrollYProgress: Moti
             The legal system shouldn&apos;t be gated by English. Communicate naturally in Hindi, Bengali, Tamil, Telugu, Odia, or Marathi.
           </p>
 
-          {/* Mock UI Element */}
-          <div className="w-full max-w-lg bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
-            <div className="flex gap-4 items-center mb-4">
-              <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">अ</div>
-              <div className="bg-[#1a1d27] rounded-lg p-3 border border-white/5 text-sm text-white/70">
+          {/* Mock UI Element - Intense Glassmorphism */}
+          <div className="w-full max-w-lg bg-white/[0.03] border border-white/10 rounded-[24px] p-6 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-1/4 w-1/2 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50" />
+            <div className="flex gap-4 items-center mb-6">
+              <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 border border-indigo-500/30">अ</div>
+              <div className="bg-[#1a1d27]/80 rounded-2xl p-4 border border-white/5 text-[15px] text-white/80 tracking-wide">
                 मुझे किरायेनामे से जुड़ी कानूनी सलाह चाहिए...
               </div>
             </div>
             <div className="flex gap-4 items-center flex-row-reverse">
-              <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center"><Scale className="w-4 h-4 text-purple-400" /></div>
-              <div className="bg-indigo-500/10 rounded-lg p-3 border border-indigo-500/20 text-sm text-indigo-100">
+              <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center border border-purple-500/30"><Scale className="w-5 h-5 text-purple-400" /></div>
+              <div className="bg-indigo-500/10 rounded-2xl p-4 border border-indigo-500/20 text-[15px] text-indigo-100/90 tracking-wide">
                 ज़रूर, मैं रेंट एग्रीमेंट (किरायेनामा) के कानूनी पहलुओं को समझने में आपकी मदद कर सकता हूँ।
               </div>
             </div>
@@ -192,11 +200,12 @@ export function ScrollContentBlocks({ scrollYProgress }: { scrollYProgress: Moti
             Not just generative LLM text. Our RAG engine searches actual Indian statute databases to give you the precise sections.
           </p>
           <div className="w-full">
-            <div className="bg-[#1a1d27] rounded-xl p-5 border border-white/10 text-white/80 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
-              <p className="font-medium mb-3">Legal Context Found:</p>
-              <p className="text-sm font-light leading-relaxed">
-                Under <span className="bg-yellow-500/20 text-yellow-300 px-1 rounded">Section 415 of the IPC (Indian Penal Code)</span>, whoever, by deceiving any person, fraudulently or dishonestly induces the person so deceived to deliver any property...
+            <div className="bg-[#1a1d27]/60 backdrop-blur-lg rounded-[20px] p-6 border border-white/10 text-white/90 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.8)]" />
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/0 via-blue-500/5 to-transparent group-hover:via-blue-500/10 transition-colors pointer-events-none" />
+              <p className="font-semibold mb-4 text-blue-300 tracking-wide uppercase text-xs">Legal Context Found</p>
+              <p className="text-[15px] font-light leading-relaxed">
+                Under <span className="bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded border border-yellow-500/30">Section 415 of the IPC (Indian Penal Code)</span>, whoever, by deceiving any person, fraudulently or dishonestly induces the person so deceived to deliver any property...
               </p>
             </div>
           </div>

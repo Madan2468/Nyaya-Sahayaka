@@ -41,3 +41,21 @@ export const getChatsForUser = query({
       .collect();
   },
 });
+
+export const deleteChat = mutation({
+  args: { chatId: v.id("chats") },
+  handler: async (ctx, args) => {
+    // Delete all messages associated with this chat
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_chatId", (q) => q.eq("chatId", args.chatId))
+      .collect();
+    
+    for (const msg of messages) {
+      await ctx.db.delete(msg._id);
+    }
+    
+    // Delete the chat itself
+    await ctx.db.delete(args.chatId);
+  },
+});

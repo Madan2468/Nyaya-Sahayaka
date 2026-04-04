@@ -11,13 +11,34 @@ import { Id } from "../../../convex/_generated/dataModel";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from "framer-motion";
+import { Settings2, X, Mic, MicOff, Volume2, Phone, PhoneOff, Square, Shield, ArrowRight } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
 
 export default function ChatPage() {
   const { user } = useUser();
-  const [chatId, setChatId] = useState<Id<"chats"> | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  const chatIdStr = searchParams.get("id");
+  const chatId = chatIdStr ? (chatIdStr as Id<"chats">) : null;
+  const setChatId = (id: Id<"chats"> | null) => {
+    if (id) router.push(`/chat?id=${id}`);
+    else router.push("/chat");
+  };
+
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [callMode, setCallMode] = useState(false);
+  const [playingMsgId, setPlayingMsgId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const callModeRef = useRef<boolean>(false);
+  
+  const [showProfile, setShowProfile] = useState(false);
+  const [profile, setProfile] = useState({ state: "All", gender: "All", caste: "All", language: "en" });
+
+  const langMap: Record<string, string> = { "en": "en-IN", "hi": "hi-IN", "bn": "bn-IN", "ta": "ta-IN" };
 
   const createChat = useMutation(api.chats.createChat);
   const addMessage = useMutation(api.messages.addMessage);
@@ -25,6 +46,105 @@ export default function ChatPage() {
   // Fetch messages if a chat exists
   const rawMessages = useQuery(api.messages.getMessagesForChat, chatId ? { chatId } : "skip") || [];
   const messages = useMemo(() => rawMessages, [rawMessages]);
+
+  const stopTTS = () => {
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    setPlayingMsgId(null);
+  };
+
+  const handleTTS = (text: string, msgId: string, onEndCallback?: () => void) => {
+    if (!window.speechSynthesis) {
+      alert("Text-to-speech is not supported in this browser.");
+      return;
+    }
+    window.speechSynthesis.cancel(); // Stop any pending speech
+    setPlayingMsgId(msgId);
+    const cleanText = text.replace(/#+\s/g, '').replace(/\*/g, '').replace(/- \[\s?\]/g, 'Step: ');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = langMap[profile.language] || "en-IN";
+    utterance.onend = () => { 
+      setPlayingMsgId(null);
+      if (onEndCallback) onEndCallback(); 
+    };
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const toggleListen = () => {
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.abort();
+      setIsListening(false);
+      return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice input is not supported in this browser.");
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.lang = langMap[profile.language] || "en-IN";
+    recognition.interimResults = false;
+    recognition.onstart = () => setIsListening(true);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput((prev) => prev + (prev ? " " : "") + transcript);
+    };
+    recognition.onend = () => setIsListening(false);
+    recognition.start();
+  };
+
+  const callListen = () => {
+    if (!callModeRef.current) return;
+    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.lang = langMap[profile.language] || "en-IN";
+    recognition.interimResults = false;
+    
+    // Barge-in and Auto Hangup support
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      if (transcript.trim() && callModeRef.current) {
+        if (playingMsgId) stopTTS(); // Instantly barge in and stop the AI
+        
+        const lc = transcript.toLowerCase();
+        if (lc.includes("goodbye") || lc.includes("bye") || lc.includes("cut the call") || lc.includes("thank you") || lc.includes("thanks") || lc.includes("stop") || lc.includes("done")) {
+           handleSend(transcript);
+           toggleCallMode(); // shut off
+           return;
+        }
+
+        handleSend(transcript);
+      }
+    };
+    recognition.onend = () => {
+       // Only restart automatically if we are still active, but usually handleSend will trigger TTS. 
+       // For a robust loop, we restart only after TTS is done.
+       setIsListening(false);
+    };
+    try { recognition.start(); setIsListening(true); } catch(e){}
+  };
+
+  const toggleCallMode = () => {
+    if (callMode) {
+      setCallMode(false);
+      callModeRef.current = false;
+      stopTTS();
+      if (recognitionRef.current) recognitionRef.current.abort();
+      setIsListening(false);
+    } else {
+      setCallMode(true);
+      callModeRef.current = true;
+      // Greeting before listening
+      const greeting = profile.language === "hi" ? "नमस्ते! मैं न्याय सहायक हूँ। मैं आपकी क्या मदद कर सकता हूँ?" : 
+                       (profile.language === "bn" ? "নমস্কার! আমি ন্যায় সহায়ক। আমি আপনাকে কীভাবে সাহায্য করতে পারি?" : 
+                       "Hello! I am Nyaya Sahayaka. How can I help you today?");
+      handleTTS(greeting, "system_greeting", () => {
+        if (callModeRef.current) callListen();
+      });
+    }
+  };
 
   const handleSend = async (forcedInput?: string) => {
     const messageText = forcedInput || input;
@@ -56,8 +176,12 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: messageText,
-          language: "en",
-          chat_history: [] // could map previous messages here
+          language: profile.language,
+          state: profile.state !== "All" ? profile.state : undefined,
+          gender: profile.gender !== "All" ? profile.gender : undefined,
+          caste: profile.caste !== "All" ? profile.caste : undefined,
+          is_voice_mode: callModeRef.current,
+          chat_history: messages.map((m: any) => ({ role: m.role, content: m.content }))
         })
       });
 
@@ -71,6 +195,13 @@ export default function ChatPage() {
           content: data.response,
           contextUsed: data.context_used
         });
+        
+        // Loop back listening for call mode
+        if (callModeRef.current) {
+          handleTTS(data.response, currentChatId, () => {
+             if (callModeRef.current) callListen();
+          });
+        }
       }
     } catch (e) {
       console.error("FastAPI or Convex error", e);
@@ -100,18 +231,169 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-transparent relative z-10 font-light text-white overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#020202] relative overflow-hidden font-sans selection:bg-indigo-500/30 selection:text-white">
+      {/* Insane Ambient Mesh Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none mix-blend-screen">
+        <motion.div animate={{ rotate: 360, scale: [1, 1.3, 1] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} className="absolute -top-[20%] -left-[10%] w-[70vw] h-[70vh] rounded-full bg-indigo-600/10 blur-[120px]" />
+        <motion.div animate={{ rotate: -360, scale: [1, 1.4, 1] }} transition={{ duration: 35, repeat: Infinity, ease: "linear" }} className="absolute top-[40%] -right-[10%] w-[60vw] h-[80vh] rounded-full bg-purple-700/10 blur-[150px]" />
+        <motion.div animate={{ y: [0, -100, 0], x: [0, 50, 0] }} transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }} className="absolute -bottom-[20%] left-[20%] w-[50vw] h-[50vh] rounded-full bg-cyan-700/10 blur-[120px]" />
+        
+        {/* Film grain / noise overlay */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-[0.15] mix-blend-overlay" />
+      </div>
+
+      <div className="relative z-10 flex flex-col h-full w-full">
+      {/* Profile Settings Interactive Drawer */}
+      <AnimatePresence>
+        {showProfile && (
+          <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-md text-left overflow-hidden">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowProfile(false)}
+              className="absolute inset-0 z-0 bg-transparent cursor-pointer" 
+            />
+            
+            <motion.div 
+              initial={{ x: "100%", opacity: 0 }} 
+              animate={{ x: 0, opacity: 1 }} 
+              exit={{ x: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 30, stiffness: 350 }}
+              className="bg-[#0a0a0c]/90 border-l border-white/10 p-10 max-w-sm w-full shadow-[0_0_100px_rgba(0,0,0,1)] relative z-10 backdrop-blur-3xl flex flex-col h-full"
+            >
+              <button onClick={() => setShowProfile(false)} className="absolute top-8 right-8 text-white/40 hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10"><X className="w-5 h-5"/></button>
+              
+              <div className="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center mb-6 border border-indigo-500/40 shadow-[inset_0_0_30px_rgba(99,102,241,0.2)]">
+                <Settings2 className="w-7 h-7 text-indigo-400" />
+              </div>
+              <h3 className="text-3xl font-medium text-white mb-2 tracking-tight">Agent Context</h3>
+              <p className="text-white/40 text-[13px] mb-10 leading-relaxed font-light">Set your demographic bounds to inject precise geolocation and case context into the RAG model pipeline.</p>
+              
+              <div className="space-y-8 flex-1">
+                <div>
+                  <label className="text-[11px] text-indigo-300/70 font-bold uppercase tracking-[0.15em] block mb-3">Residential State</label>
+                  <div className="relative">
+                    <select value={profile.state} onChange={e => setProfile({...profile, state: e.target.value})} className="w-full bg-black/40 border border-white/10 text-white rounded-2xl p-4 outline-none focus:border-indigo-500 transition-all cursor-pointer appearance-none group text-[15px] tracking-wide shadow-inner">
+                      <option value="All">All States (Union)</option>
+                      <option value="Andhra Pradesh">Andhra Pradesh</option>
+                      <option value="Madhya Pradesh">Madhya Pradesh</option>
+                      <option value="West Bengal">West Bengal</option>
+                      <option value="Chhattisgarh">Chhattisgarh</option>
+                      <option value="Karnataka">Karnataka</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[11px] text-indigo-300/70 font-bold uppercase tracking-[0.15em] block mb-3">Gender</label>
+                    <select value={profile.gender} onChange={e => setProfile({...profile, gender: e.target.value})} className="w-full bg-black/40 border border-white/10 text-white rounded-2xl p-4 outline-none focus:border-indigo-500 transition-all cursor-pointer appearance-none text-[15px] tracking-wide shadow-inner">
+                      <option value="All">Any</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-indigo-300/70 font-bold uppercase tracking-[0.15em] block mb-3">Category</label>
+                    <select value={profile.caste} onChange={e => setProfile({...profile, caste: e.target.value})} className="w-full bg-black/40 border border-white/10 text-white rounded-2xl p-4 outline-none focus:border-indigo-500 transition-all cursor-pointer appearance-none text-[15px] tracking-wide shadow-inner">
+                      <option value="All">General</option>
+                      <option value="SC">SC</option>
+                      <option value="ST">ST</option>
+                      <option value="OBC">OBC</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-8 border-t border-white/5 pb-10">
+                <Button onClick={() => setShowProfile(false)} className="w-full h-14 shadow-[0_0_30px_rgba(99,102,241,0.3)] bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white rounded-2xl text-[16px] font-semibold border border-white/10 tracking-wide transition-all hover:scale-[1.02]">
+                  Sync Engine Context
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Language Picker Header */}
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center bg-[#0a0a0c]/80 backdrop-blur-2xl border border-white/5 rounded-full px-6 py-2.5 z-40 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)]">
+         <span className="text-white/30 text-[10px] font-bold uppercase tracking-[0.2em] mr-4">Voice Engine</span>
+         <select value={profile.language} onChange={e => setProfile({...profile, language: e.target.value})} className="bg-transparent text-indigo-400 group hover:text-indigo-300 text-sm font-semibold outline-none cursor-pointer appearance-none text-center">
+           <option value="en">English (Default)</option>
+           <option value="hi">Hindi (हिंदी)</option>
+           <option value="bn">Bengali (বাঙালি)</option>
+           <option value="ta">Tamil (தமிழ்)</option>
+         </select>
+      </div>
+
+      {/* Premium Call Mode Overlay */}
+      {callMode && (
+        <AnimatePresence>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-2xl">
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-60 pointer-events-none z-0" />
+            
+            {/* Live Audio Visualizer Particle Ring */}
+            <div className="relative mb-16 flex items-center justify-center cursor-pointer group" onClick={toggleListen}>
+              <div className="relative z-10 w-64 h-64 flex items-center justify-center">
+                {Array.from({ length: 48 }).map((_, i) => (
+                  <motion.div
+                    key={i}
+                    animate={{
+                      height: isListening 
+                        ? [12, Math.random() * 60 + 20, 12] 
+                        : (playingMsgId ? [15, Math.random() * 40 + 20, 15] : 12),
+                      opacity: isListening ? [0.4, 1, 0.4] : 0.4
+                    }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: isListening ? 0.4 : (playingMsgId ? 0.6 : 2),
+                      ease: "easeInOut",
+                      delay: i * 0.03
+                    }}
+                    className={`absolute w-1 rounded-full origin-bottom ${isListening ? 'bg-cyan-400 shadow-[0_0_15px_cyan]' : (playingMsgId ? 'bg-purple-400 shadow-[0_0_15px_purple]' : 'bg-white/20')}`}
+                    style={{ transformOrigin: "0 128px", rotate: `${i * (360/48)}deg`, top: 0, left: "50%" }}
+                  />
+                ))}
+                
+                {/* Core Center Microphone Glass */}
+                <div className={`relative z-20 w-32 h-32 rounded-full flex items-center justify-center bg-black/60 backdrop-blur-3xl border border-white/10 transition-all duration-700 shadow-2xl ${isListening ? 'border-cyan-400/50 shadow-[0_0_80px_rgba(34,211,238,0.4)] bg-cyan-900/20' : (playingMsgId ? 'border-purple-500/50 shadow-[0_0_60px_rgba(168,85,247,0.3)]' : '')}`}>
+                  <Mic className={`w-10 h-10 transition-all duration-500 ${isListening ? 'text-cyan-300 drop-shadow-[0_0_20px_rgba(34,211,238,0.9)] scale-110 animate-pulse' : (playingMsgId ? 'text-purple-300 scale-105' : 'text-white/40')}`} />
+                </div>
+              </div>
+            </div>
+            
+            <motion.h2 animate={{ opacity: [0.7, 1, 0.7] }} transition={{ repeat: Infinity, duration: 2 }} className="text-4xl font-light text-white tracking-widest mb-4 z-10 drop-shadow-md">
+              {isListening ? 'Listening...' : (playingMsgId ? 'Speaking...' : 'Processing...')}
+            </motion.h2>
+            <p className="text-white/40 max-w-sm text-center mb-16 z-10 text-lg font-light leading-relaxed">
+              Have a natural conversation. Ask legal bounds or discuss your situation.
+            </p>
+
+            <button onClick={toggleCallMode} className="relative z-10 bg-red-500/10 hover:bg-red-500 text-white rounded-full p-6 border border-red-500/30 backdrop-blur-xl shadow-[0_0_40px_rgba(239,68,68,0.2)] hover:shadow-[0_0_60px_rgba(239,68,68,0.6)] transition-all transform hover:scale-110 group">
+              <PhoneOff className="w-8 h-8 group-hover:rotate-12 transition-transform" />
+            </button>
+          </motion.div>
+        </AnimatePresence>
+      )}
 
       {/* Scrollable Chat Area */}
-      <div className="flex-1 overflow-y-auto px-6 md:px-12 pt-12 pb-32 custom-scrollbar" ref={scrollRef}>
+      <div className="flex-1 overflow-y-auto px-6 md:px-12 pt-12 pb-32 custom-scrollbar relative" ref={scrollRef}>
+        
         <AnimatePresence mode="popLayout">
           {messages.length === 0 ? (
             <motion.div
               key="empty-state"
               initial="hidden" animate="show" exit={{ opacity: 0, scale: 0.95 }}
               variants={containerVariants}
-              className="flex flex-col items-center justify-center h-full text-center space-y-10 px-4 mt-20"
+              className="flex flex-col items-center justify-center h-full text-center space-y-10 px-4 mt-20 relative z-10"
             >
+              {/* Massive Empty State Watermark */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 0.03, scale: 1 }}
+                transition={{ duration: 2 }}
+                className="absolute inset-0 pointer-events-none flex justify-center items-center -z-10 mt-[-10vh]"
+              >
+                <Scale className="w-[60vw] max-w-[800px] h-auto text-white" />
+              </motion.div>
               <motion.div variants={itemVariants} className="relative w-40 h-40 md:w-48 md:h-48 mb-8 mx-auto flex items-center justify-center" style={{ perspective: 1200 }}>
                 {/* Massive Outer Glow */}
                 <div className="absolute inset-[-40px] bg-indigo-500/20 blur-[70px] rounded-full group-hover:bg-indigo-500/30 transition-colors duration-1000" />
@@ -181,21 +463,34 @@ export default function ChatPage() {
               </motion.div>
             </motion.div>
           ) : (
-            <div className="space-y-8 max-w-4xl mx-auto w-full pb-10">
+            <div className="space-y-0 max-w-4xl mx-auto w-full pb-10 relative">
               {messages.map((msg, i) => (
                 <motion.div
                   key={msg._id}
-                  initial={{ opacity: 0, y: 20, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ type: "spring", damping: 25, stiffness: 200, delay: Math.min(i * 0.05, 1) }}
-                  className={`flex gap-5 group ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ damping: 25, stiffness: 200 }}
+                  className="flex gap-6 relative group pt-6 pb-6"
                 >
-                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-lg border ${msg.role === 'user' ? 'bg-[#151518] border-white/5' : 'bg-gradient-to-br from-indigo-500 to-purple-600 border-indigo-500/30'}`}>
+                  {/* Timeline Thread Line */}
+                  {i !== messages.length - 1 && (
+                    <div className="absolute left-[19px] top-[64px] bottom-[-24px] w-[2px] bg-white/5 group-hover:bg-indigo-500/20 transition-colors z-0" />
+                  )}
+
+                  <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-lg border ${msg.role === 'user' ? 'bg-[#1a1a1f] border-white/10' : 'bg-gradient-to-br from-indigo-500 to-purple-600 border-indigo-500/30 ring-4 ring-[#0a0a0c]'}`}>
                     {msg.role === 'user' ? <User className="w-5 h-5 text-white/70" /> : <Bot className="w-5 h-5 text-white" />}
                   </div>
 
-                  <div className={`flex flex-col text-sm max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                    <div className={`p-6 rounded-[28px] shadow-2xl backdrop-blur-2xl transition-all duration-300 ${msg.role === 'user' ? 'bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 text-white rounded-tr-sm' : 'bg-[#0f0f12]/80 hover:bg-[#121216]/90 border border-white-[0.05] text-white/90 rounded-tl-sm'}`}>
+                  <div className={`flex flex-col text-sm w-full overflow-hidden`}>
+                    <div className="text-white/40 text-xs tracking-widest uppercase mb-3 font-semibold translate-x-1">
+                      {msg.role === 'user' ? (user?.firstName || "Citizen") : "Nyaya Sahayaka AI"}
+                    </div>
+                    <div className="relative transition-all duration-500">
+                      {msg.role !== 'user' && (
+                        <button onClick={() => playingMsgId === msg._id ? stopTTS() : handleTTS(msg.content, msg._id)} className={`absolute top-4 right-4 transition-colors p-2 rounded-full ${playingMsgId === msg._id ? 'text-red-400 bg-red-400/10 hover:bg-red-400/20' : 'text-white/30 hover:text-white hover:bg-white/5'}`} title={playingMsgId === msg._id ? "Stop Reading" : "Read Aloud"}>
+                          {playingMsgId === msg._id ? <Square className="w-4 h-4 fill-current" /> : <Volume2 className="w-4 h-4" />}
+                        </button>
+                      )}
                       {msg.role === 'user' ? (
                         <div className="whitespace-pre-wrap text-[16px] tracking-wide leading-relaxed font-light">{msg.content}</div>
                       ) : (
@@ -206,7 +501,29 @@ export default function ChatPage() {
                               p: ({ ...props }) => <p className="mb-5 last:mb-0 leading-[1.8] tracking-wide text-[15px] font-light text-white/85" {...props} />,
                               ul: ({ ...props }) => <ul className="list-disc ml-6 mb-5 space-y-3 marker:text-indigo-400 text-white/85 font-light" {...props} />,
                               ol: ({ ...props }) => <ol className="list-decimal ml-6 mb-5 space-y-3 marker:text-indigo-400 text-white/85 font-light" {...props} />,
-                              li: ({ ...props }) => <li className="pl-2 line-height-[1.8] text-[15px]" {...props} />,
+                              li: ({ className, children, ...props }: any) => {
+                                if (className === 'task-list-item') {
+                                  return (
+                                    <li className="flex items-start gap-4 my-3 text-white/90 bg-white/[0.02] hover:bg-white/[0.04] p-4 rounded-2xl transition-all border border-white/5 shadow-sm" {...props}>
+                                      {children}
+                                    </li>
+                                  );
+                                }
+                                return <li className="pl-2 leading-[1.8] text-[15px]" {...props}>{children}</li>
+                              },
+                              input: ({ type, checked, ...props }: any) => {
+                                if (type === 'checkbox') {
+                                  return (
+                                    <div className="relative flex items-center justify-center shrink-0 mt-0.5">
+                                      <input type="checkbox" defaultChecked={checked} className="peer w-[22px] h-[22px] appearance-none border-2 border-white/20 rounded-[8px] bg-black/40 checked:bg-indigo-500 checked:border-indigo-500 transition-all cursor-pointer shadow-inner" {...props} />
+                                      <div className="absolute inset-0 flex items-center justify-center text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity">
+                                        <svg width="12" height="10" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 5L4.5 8.5L11 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return <input type={type} defaultChecked={checked} {...props} />
+                              },
                               strong: ({ ...props }) => <strong className="font-semibold text-white tracking-wide" {...props} />,
                               em: ({ ...props }) => <em className="text-white/60 italic font-light" {...props} />,
                               h3: ({ ...props }) => <h3 className="text-xl font-medium text-white mt-10 mb-4 tracking-tight" {...props} />,
@@ -220,9 +537,12 @@ export default function ChatPage() {
                       )}
                     </div>
                     {msg.contextUsed && (
-                      <details className="mt-3 text-xs text-white/40 bg-white/[0.02] hover:bg-white/[0.04] p-4 rounded-2xl cursor-pointer max-w-full overflow-hidden border border-white/[0.05] transition-colors duration-300">
-                        <summary className="font-medium text-white/50 hover:text-white/80 transition-colors outline-none select-none">View Legal Strategy & RAG Context</summary>
-                        <p className="mt-4 text-white/40 whitespace-pre-wrap leading-relaxed border-t border-white/5 pt-4 font-mono text-[11px] opacity-70">{msg.contextUsed}</p>
+                      <details className="mt-4 text-xs text-white/40 bg-white/[0.02] hover:bg-white/[0.04] rounded-2xl cursor-pointer max-w-full overflow-hidden border border-white/[0.05] transition-colors duration-300">
+                        <summary className="font-medium text-white/60 hover:text-white/90 transition-colors outline-none select-none p-4 flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-indigo-400" />
+                          View Legal Strategy & RAG Context
+                        </summary>
+                        <p className="px-6 pb-6 pt-2 text-white/40 whitespace-pre-wrap leading-relaxed font-mono text-[11px] opacity-70 bg-black/20">{msg.contextUsed}</p>
                       </details>
                     )}
                   </div>
@@ -231,17 +551,21 @@ export default function ChatPage() {
 
               {isGenerating && (
                 <motion.div
-                  initial={{ opacity: 0, y: 20, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                  className="flex gap-5 flex-row"
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                  className="flex gap-6 relative group pt-6"
                 >
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-[0_0_30px_rgba(99,102,241,0.5)]">
+                  <div className="absolute left-[19px] top-[-24px] bottom-[20px] w-[2px] bg-white/5 z-0" />
+                  <div className="relative z-10 w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border border-indigo-500/30 flex items-center justify-center shrink-0 shadow-lg ring-4 ring-[#0a0a0c]">
                     <Bot className="w-5 h-5 text-white animate-pulse" />
                   </div>
-                  <div className="p-5 rounded-[28px] rounded-tl-sm bg-gradient-to-r from-[#0f0f12]/90 to-[#15151a]/90 border border-indigo-500/20 text-indigo-300 flex items-center gap-3 shadow-2xl backdrop-blur-2xl font-medium tracking-wide text-[15px] relative overflow-hidden">
-                    <div className="absolute inset-0 bg-indigo-500/10 animate-pulse" />
-                    <Loader2 className="w-5 h-5 animate-spin relative z-10" />
-                    <span className="animate-pulse relative z-10">Mining IPC, CrPC, & Welfare Schematics...</span>
+                  <div className="flex flex-col text-sm w-full">
+                    <div className="text-white/40 text-xs tracking-widest uppercase mb-3 font-semibold translate-x-1 animate-pulse">
+                      Mining Statutes...
+                    </div>
+                    <div className="p-4 w-fit rounded-2xl bg-[#111116] border border-indigo-500/20 text-indigo-300 flex items-center gap-3 font-medium tracking-wide text-[14px]">
+                      <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+                      Cross-referencing IPC, CrPC, & Welfare Schematics...
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -250,34 +574,54 @@ export default function ChatPage() {
         </AnimatePresence>
       </div>
 
-      {/* Floating Input Area */}
-      <div className="absolute bottom-6 left-0 right-0 px-6 z-30 pointer-events-none">
-        <div className="max-w-4xl mx-auto relative group pointer-events-auto">
-          {/* Animated Glow behind input */}
-          <div className="absolute -inset-2 bg-gradient-to-r from-indigo-500/30 via-purple-500/30 to-indigo-500/30 rounded-[32px] blur-2xl opacity-50 group-hover:opacity-100 group-focus-within:opacity-100 transition duration-1000" />
-
-          <div className="relative flex items-end gap-3 bg-[#0a0a0c]/90 backdrop-blur-3xl border border-white/10 rounded-[28px] p-3 shadow-2xl transition-all focus-within:border-indigo-500/50 focus-within:bg-[#0a0a0c]">
-            <Input
+      <div className="p-4 md:p-8 shrink-0 bg-gradient-to-t from-[rgba(3,3,5,0.9)] via-[rgba(3,3,5,0.8)] to-transparent relative z-30 pt-20 backdrop-blur-[2px]">
+        <div className="max-w-3xl mx-auto flex flex-col items-center">
+          {/* Futuristic Floating Island Input Area */}
+          <div className={`w-full bg-[#0a0a0c]/90 backdrop-blur-3xl border border-white/10 rounded-[32px] p-2 relative group transition-all duration-300 shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.05)] focus-within:border-indigo-500/50 focus-within:shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_0_1px_rgba(99,102,241,0.5),0_0_20px_rgba(99,102,241,0.15)] flex ${input.split('\n').length > 1 ? 'items-end' : 'items-center'}`}>
+            <textarea
+              rows={Math.min(input.split('\n').length, 5)}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-              placeholder="Draft a notice, explore schemes, or ask a legal question..."
-              className="border-0 focus-visible:ring-0 bg-transparent text-white placeholder:text-white/30 resize-none min-h-[52px] shadow-none h-14 text-[16px] tracking-wide font-light px-5"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder="Ask a legal question..."
+              className="border-0 focus-visible:ring-0 bg-transparent text-white placeholder:text-white/30 resize-none shadow-none min-h-[56px] py-4 text-[15px] tracking-wide font-light px-6 w-full outline-none custom-scrollbar"
             />
-            <Button
-              onClick={() => handleSend()}
-              disabled={!input.trim() || isGenerating}
-              size="icon"
-              className="h-14 w-14 shrink-0 rounded-[20px] bg-white hover:bg-gray-200 text-black transition-all shadow-[0_0_30px_rgba(255,255,255,0.15)] hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] disabled:opacity-30 disabled:shadow-none hover:scale-105 active:scale-95"
-            >
-              {isGenerating ? <Loader2 className="w-6 h-6 animate-spin text-indigo-600" /> : <Send className="w-6 h-6 ml-1 text-black" />}
-            </Button>
+            <div className="flex items-center gap-1.5 pr-2 pl-2 pb-2 h-full shrink-0">
+              <button
+                onClick={toggleCallMode}
+                title="Hands-free Call Mode"
+                className="p-3.5 rounded-full transition-all md:block hover:text-white bg-indigo-500/10 hover:bg-indigo-500/25 text-indigo-400 group-focus-within:opacity-100"
+              >
+                <Phone className="w-[18px] h-[18px]" />
+              </button>
+              <button
+                onClick={toggleListen}
+                title="Dictate Message"
+                className={`p-3.5 rounded-full transition-all ${isListening && !callMode ? 'bg-red-500/20 text-red-400 animate-pulse' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+              >
+                {isListening && !callMode ? <Mic className="w-[18px] h-[18px] drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]" /> : <MicOff className="w-[18px] h-[18px]" />}
+              </button>
+              <Button
+                onClick={() => handleSend()}
+                disabled={!input.trim() || isGenerating}
+                className="ml-1 h-12 w-12 rounded-full bg-white text-black hover:bg-indigo-100 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] disabled:opacity-30 disabled:shadow-none p-0 flex items-center justify-center shrink-0"
+              >
+                <ArrowRight className="w-5 h-5 text-black" />
+              </Button>
+            </div>
           </div>
-          <p className="text-center text-[11px] text-white/30 mt-5 font-light tracking-wide uppercase">
-            AI-generated legal assistance framework • Not formal legal advice
+          <p className="text-center text-[11px] text-white/30 mt-4 font-light tracking-wider uppercase">
+            AI-generated legal framework • Not formal advice • <button onClick={() => setShowProfile(true)} className="hover:text-white underline underline-offset-4 decoration-white/20 transition-colors">Set Profile Options</button>
           </p>
         </div>
       </div>
+      
+      </div> {/* <-- CLosing tag for relative z-10 wrapper */}
     </div>
   );
 }

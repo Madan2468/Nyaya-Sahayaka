@@ -36,6 +36,9 @@ class ChatRequest(BaseModel):
     query: str
     language: str = "en"
     state: Optional[str] = None
+    gender: Optional[str] = "All"
+    caste: Optional[str] = "All"
+    is_voice_mode: bool = False
     chat_history: Optional[List[dict]] = []
 
 class DocumentRequest(BaseModel):
@@ -67,21 +70,34 @@ async def chat_endpoint(request: ChatRequest):
         # We leverage Gemini 1 Million token context window by pulling top_k=60 for schemes.
         top_k = 60 if intent == "scheme" else 8
         
-        # Optimize the vector search query by explicitly injecting the state name
+        # Optimize the vector search query by explicitly injecting profile parameters
         search_query = request.query
-        if intent == "scheme" and detected_state:
-            search_query = f"{request.query} {detected_state} State Government Scheme"
+        if intent == "scheme":
+            if detected_state:
+                search_query += f" for {detected_state} state"
+            if request.gender and request.gender != "All":
+                search_query += f" specifically for {request.gender}"
+            if request.caste and request.caste != "All":
+                search_query += f" category {request.caste}"
             
         context = rag_service.retrieve(search_query, top_k=top_k, intent=intent)
         
+        # Provide strict filtering instructions to LLM
+        profile_instructions = ""
+        if intent == "scheme":
+            profile_instructions = f"\n\n[CRITICAL FILTERING]: The user's profile is State: {detected_state}, Gender: {request.gender}, Caste/Category: {request.caste}. You MUST filter out any schemes in your context that contradict these demographics."
+            if not request.is_voice_mode:
+                 profile_instructions += "\n\n[RESPONSE FORMAT]: End your response with a 'Next Steps' section formatted strictly as a Markdown Task List (e.g., `- [ ] Gather Aadhaar Card`)."
+        
         # 3. Generate response using LLM with context
         response_text = llm_service.generate_response(
-            query=request.query,
+            query=request.query + profile_instructions,
             context=context,
             language=request.language,
             state=detected_state,
             history=request.chat_history,
-            intent=intent
+            intent=intent,
+            is_voice_mode=request.is_voice_mode
         )
         
         return {
