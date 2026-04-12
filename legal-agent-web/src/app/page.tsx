@@ -2,10 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
-import { ArrowRight, Scale, Shield, FileText, Globe, Sparkles } from "lucide-react";
+import { ArrowRight, Scale, Shield, Globe, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { motion, useScroll, useTransform, useMotionTemplate, useMotionValue } from "framer-motion";
-import { useRef, MouseEvent, useState, useEffect } from "react";
+import { useRef, MouseEvent, useEffect } from "react";
 import { LaptopScroll, ScrollContentBlocks } from "@/components/ui/laptop-scroll";
 
 export default function LandingPage() {
@@ -109,22 +109,26 @@ export default function LandingPage() {
             
             <SignedIn>
               <Link href="/chat">
-                <Button size="lg" className="rounded-2xl relative overflow-hidden bg-white text-black hover:bg-neutral-200 hover:scale-105 transition-all text-lg px-10 py-8 shadow-[0_0_50px_rgba(255,255,255,0.3)] group z-10 border border-white/20">
-                  <span className="relative z-10 flex items-center font-bold tracking-tight">
-                    Start Consultation <ArrowRight className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 z-0" />
-                </Button>
+                <motion.div animate={{ shadow: ["0 0 30px rgba(255,255,255,0.2)", "0 0 60px rgba(255,255,255,0.5)", "0 0 30px rgba(255,255,255,0.2)"] }} transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }} className="rounded-2xl">
+                  <Button size="lg" className="rounded-2xl relative overflow-hidden bg-white text-black hover:bg-neutral-200 hover:scale-105 transition-all text-lg px-10 py-8 shadow-[0_0_50px_rgba(255,255,255,0.3)] group z-10 border border-white/20">
+                    <span className="relative z-10 flex items-center font-bold tracking-tight">
+                      Start Consultation <ArrowRight className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 z-0" />
+                  </Button>
+                </motion.div>
               </Link>
             </SignedIn>
             <SignedOut>
               <SignInButton mode="modal">
-                <Button size="lg" className="rounded-2xl relative overflow-hidden bg-white text-black hover:bg-neutral-200 hover:scale-105 transition-all text-lg px-10 py-8 shadow-[0_0_50px_rgba(255,255,255,0.3)] group z-10 border border-white/20">
-                  <span className="relative z-10 flex items-center font-bold tracking-tight">
-                    Talk to AI Assistant <ArrowRight className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 z-0" />
-                </Button>
+                <motion.div animate={{ shadow: ["0 0 30px rgba(255,255,255,0.2)", "0 0 60px rgba(255,255,255,0.5)", "0 0 30px rgba(255,255,255,0.2)"] }} transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }} className="rounded-2xl">
+                  <Button size="lg" className="rounded-2xl relative overflow-hidden bg-white text-black hover:bg-neutral-200 hover:scale-105 transition-all text-lg px-10 py-8 shadow-[0_0_50px_rgba(255,255,255,0.3)] group z-10 border border-white/20">
+                    <span className="relative z-10 flex items-center font-bold tracking-tight">
+                      Talk to AI Assistant <ArrowRight className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 z-0" />
+                  </Button>
+                </motion.div>
               </SignInButton>
             </SignedOut>
           </div>
@@ -146,9 +150,9 @@ export default function LandingPage() {
             desc="Speak naturally in Hindi, Bengali, Tamil, Telugu, Odia or Marathi. The AI translates everything flawlessly."
           />
           <FeatureCard
-            icon={<FileText className="w-8 h-8 text-pink-400" />}
-            title="Instant Legal Drafts"
-            desc="Generate ready-to-print PDFs for FIRs, RTIs, and Consumer Complaints in seconds."
+            icon={<Sparkles className="w-8 h-8 text-emerald-400" />}
+            title="Government Scheme Finder"
+            desc="Discover welfare schemes tailored to your profile. Get eligibility details and application steps in your local language."
           />
         </div>
 
@@ -187,7 +191,8 @@ function FeatureCard({ icon, title, desc }: { icon: React.ReactNode, title: stri
           background: useMotionTemplate`
             radial-gradient(
               400px circle at ${mouseX}px ${mouseY}px,
-              rgba(99, 102, 241, 0.15),
+              rgba(34, 211, 238, 0.15) 0%,
+              rgba(99, 102, 241, 0.15) 30%,
               transparent 80%
             )
           `,

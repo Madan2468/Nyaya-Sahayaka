@@ -2,7 +2,7 @@
 
 import { motion, useScroll, useTransform, MotionValue } from 'framer-motion';
 import { useRef } from 'react';
-import { Scale } from 'lucide-react';
+import { Scale, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 
 interface LaptopScrollProps {
@@ -229,36 +229,42 @@ export function ScrollContentBlocks({ scrollYProgress }: { scrollYProgress: Moti
         </motion.div>
       </motion.div>
 
-      {/* Slide 3: Instant Drafts & PDF Gen */}
+      {/* Slide 3: Government Scheme Discovery */}
       <motion.div style={{ opacity: opacity3, y: y3, pointerEvents: 'none' }} className="absolute inset-0 p-12 flex items-center justify-between text-left">
         <div className="w-1/2 pr-8">
-          <div className="inline-flex py-1 px-3 rounded text-sm bg-pink-500/20 text-pink-300 mb-6 font-medium">Instant Drafts</div>
+          <div className="inline-flex py-1 px-3 rounded text-sm bg-emerald-500/20 text-emerald-300 mb-6 font-medium">Scheme Recommendations</div>
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-white">
-            Ready-to-Print Documents.
+            Social Welfare Discovery.
           </h2>
           <p className="text-xl text-white/50 max-w-2xl font-light mb-8">
-            From legal analysis directly into professionally formatted PDFs for FIRs, RTIs, and Complaints.
+            Find government schemes you qualify for based on your state, gender, and category. Get clear application guides in your language.
           </p>
-
-          <button className="px-6 py-3 bg-pink-500 hover:bg-pink-600 transition-colors text-white rounded-xl font-medium shadow-lg shadow-pink-500/20 pointer-events-auto">
-            Try Generating a Draft
-          </button>
+          
+          <div className="flex gap-4">
+            <div className="px-5 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 rounded-xl text-sm font-medium">State Filter</div>
+            <div className="px-5 py-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 rounded-xl text-sm font-medium">Gender-Specific</div>
+          </div>
         </div>
 
         {/* Visual Asset */}
         <motion.div
           className="w-1/2 flex justify-center items-center"
           animate={{ y: [-15, 15, -15] }}
-          transition={{ repeat: Infinity, duration: 5.5, ease: "easeInOut" }}
+          transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
         >
-          <div className="relative w-full max-w-[400px] aspect-square rounded-[32px] overflow-hidden border border-white/10 shadow-[0_0_100px_rgba(236,72,153,0.2)]">
-            <Image
-              src="/assets/instant_pdf_drafts.png"
-              alt="Futuristic PDF Generation tablet"
-              fill
-              className="object-cover"
-              priority
-            />
+          <div className="relative w-full max-w-[400px] aspect-square rounded-[32px] overflow-hidden border border-white/10 shadow-[0_0_100px_rgba(16,185,129,0.2)] bg-emerald-500/5 flex items-center justify-center p-12">
+            <div className="flex flex-col items-center gap-6 text-center">
+               <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center border border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+                 <Sparkles className="w-10 h-10 text-emerald-400" />
+               </div>
+               <div className="space-y-2">
+                 <div className="h-4 w-48 bg-emerald-500/30 rounded-full animate-pulse mx-auto" />
+                 <div className="h-4 w-32 bg-emerald-500/20 rounded-full animate-pulse mx-auto" />
+               </div>
+               <div className="w-full h-12 bg-emerald-500 text-white rounded-xl flex items-center justify-center font-bold text-sm">
+                 View Scheme Details
+               </div>
+            </div>
           </div>
         </motion.div>
       </motion.div>

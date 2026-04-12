@@ -60,7 +60,7 @@ export default function ChatLayout({
             animate={{ opacity: 1, x: 0, width: 320, marginRight: 16 }}
             exit={{ opacity: 0, x: -300, width: 0, marginRight: 0 }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="shrink-0 my-4 ml-4 rounded-[32px] border border-white/5 bg-[#0a0a0c]/80 backdrop-blur-2xl flex flex-col shadow-2xl relative z-20 overflow-hidden"
+            className="shrink-0 my-4 ml-4 rounded-[32px] border border-white/5 bg-gradient-to-b from-[#0a0a0c]/90 to-[#111116]/90 backdrop-blur-2xl flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] relative z-20 overflow-hidden"
           >
 
             {/* App Title */}
@@ -75,7 +75,7 @@ export default function ChatLayout({
 
             {/* New Chat Button */}
             <div className="p-5 shrink-0 z-10">
-              <Button onClick={() => router.push('/chat')} className="w-full bg-white/[0.03] hover:bg-white/[0.08] text-white/90 border border-white/5 hover:border-white/10 shadow-lg rounded-2xl flex items-center justify-start px-5 h-14 transition-all group overflow-hidden relative" variant="ghost">
+              <Button onClick={() => router.push('/chat')} className="w-full bg-white/[0.03] hover:bg-white/[0.08] text-white/90 border border-white/5 hover:border-white/10 shadow-lg hover:shadow-[0_0_20px_rgba(99,102,241,0.2)] rounded-2xl flex items-center justify-start px-5 h-14 transition-all group overflow-hidden relative" variant="ghost">
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-indigo-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                 <div className="bg-white/5 p-1.5 rounded-lg mr-4 group-hover:bg-indigo-500 group-hover:text-white transition-colors duration-300">
                   <Plus className="w-4 h-4" />
@@ -88,21 +88,25 @@ export default function ChatLayout({
             <div className="flex-1 overflow-y-auto px-5 py-2 space-y-1 relative z-10 custom-scrollbar">
               <div className="text-[10px] font-bold text-white/30 mb-5 uppercase tracking-[0.2em] px-2">Recent Sessions</div>
 
+              <motion.div variants={{hidden: {opacity:0}, show: {opacity:1, transition: {staggerChildren: 0.05}}}} initial="hidden" animate="show" className="space-y-1">
               {chats?.map((chat) => (
-                <Link href={`/chat?id=${chat._id}`} key={chat._id} className="block px-5 py-3.5 rounded-2xl bg-transparent border border-transparent hover:border-white/5 hover:bg-white/[0.03] hover:shadow-xl hover:shadow-black/50 cursor-pointer transition-all text-[14px] text-white/50 hover:text-white/90 font-light tracking-wide group relative">
-                  <span className="relative z-10 w-[85%] block truncate">{chat.title}</span>
-                  <button onClick={(e) => handleDeleteChat(e, chat._id)} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all z-20" title="Delete Chat">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </Link>
+                <motion.div key={chat._id} variants={{hidden: {opacity:0, x:-10}, show: {opacity:1, x:0}}}>
+                  <Link href={`/chat?id=${chat._id}`} className="block px-4 py-3 rounded-2xl bg-transparent border border-transparent hover:border-indigo-500/20 hover:bg-indigo-500/[0.03] hover:shadow-[inset_3px_0_0_rgba(99,102,241,0.5)] cursor-pointer transition-all text-[14px] text-white/50 hover:text-white/90 font-light tracking-wide group relative">
+                    <span className="relative z-10 w-[85%] block truncate group-hover:translate-x-1 transition-transform">{chat.title}</span>
+                    <button onClick={(e) => handleDeleteChat(e, chat._id)} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all z-20" title="Delete Chat">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </Link>
+                </motion.div>
               ))}
+              </motion.div>
               {chats?.length === 0 && (
                 <div className="px-3 text-[13px] text-white/30 text-center mt-8 font-light italic">No robust history available</div>
               )}
             </div>
 
             {/* User Profile Footer */}
-            <div className="p-6 border-t border-white/[0.04] flex items-center justify-between shrink-0 bg-black/20 relative z-20 backdrop-blur-xl">
+            <div className="p-6 border-t border-white/[0.08] flex items-center justify-between shrink-0 bg-white/[0.02] bg-gradient-to-t from-white/[0.02] to-transparent relative z-20 backdrop-blur-2xl shadow-[0_-10px_20px_rgba(0,0,0,0.2)]">
               <div className="flex items-center gap-4">
                 <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "w-11 h-11 border-2 border-white/10 rounded-2xl transition-all hover:border-indigo-500" } }} />
                 <div className="flex flex-col">

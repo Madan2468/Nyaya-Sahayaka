@@ -386,14 +386,7 @@ export default function ChatPage() {
               variants={containerVariants}
               className="flex flex-col items-center justify-center h-full text-center space-y-10 px-4 mt-20 relative z-10"
             >
-              {/* Massive Empty State Watermark */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 0.03, scale: 1 }}
-                transition={{ duration: 2 }}
-                className="absolute inset-0 pointer-events-none flex justify-center items-center -z-10 mt-[-10vh]"
-              >
-                <Scale className="w-[60vw] max-w-[800px] h-auto text-white" />
-              </motion.div>
+
               <motion.div variants={itemVariants} className="relative w-40 h-40 md:w-48 md:h-48 mb-8 mx-auto flex items-center justify-center" style={{ perspective: 1200 }}>
                 {/* Massive Outer Glow */}
                 <div className="absolute inset-[-40px] bg-indigo-500/20 blur-[70px] rounded-full group-hover:bg-indigo-500/30 transition-colors duration-1000" />
@@ -477,7 +470,7 @@ export default function ChatPage() {
                     <div className="absolute left-[19px] top-[64px] bottom-[-24px] w-[2px] bg-white/5 group-hover:bg-indigo-500/20 transition-colors z-0" />
                   )}
 
-                  <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-lg border ${msg.role === 'user' ? 'bg-[#1a1a1f] border-white/10' : 'bg-gradient-to-br from-indigo-500 to-purple-600 border-indigo-500/30 ring-4 ring-[#0a0a0c]'}`}>
+                  <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-[0_4px_20px_rgba(0,0,0,0.5)] border ${msg.role === 'user' ? 'bg-gradient-to-br from-[#1a1a1f] to-[#111113] border-white/[0.15] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]' : 'bg-gradient-to-br from-indigo-500 to-purple-600 border-indigo-400/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] ring-4 ring-[#0a0a0c]'}`}>
                     {msg.role === 'user' ? <User className="w-5 h-5 text-white/70" /> : <Bot className="w-5 h-5 text-white" />}
                   </div>
 
@@ -498,9 +491,9 @@ export default function ChatPage() {
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             components={{
-                              p: ({ ...props }) => <p className="mb-5 last:mb-0 leading-[1.8] tracking-wide text-[15px] font-light text-white/85" {...props} />,
-                              ul: ({ ...props }) => <ul className="list-disc ml-6 mb-5 space-y-3 marker:text-indigo-400 text-white/85 font-light" {...props} />,
-                              ol: ({ ...props }) => <ol className="list-decimal ml-6 mb-5 space-y-3 marker:text-indigo-400 text-white/85 font-light" {...props} />,
+                              p: ({ ...props }) => <p className="mb-5 last:mb-0 leading-[1.8] tracking-wide text-[15px] font-light text-white/95" {...props} />,
+                              ul: ({ ...props }) => <ul className="list-disc ml-6 mb-5 space-y-3 marker:text-indigo-400 text-white/95 font-light" {...props} />,
+                              ol: ({ ...props }) => <ol className="list-decimal ml-6 mb-5 space-y-3 marker:text-indigo-400 text-white/95 font-light" {...props} />,
                               li: ({ className, children, ...props }: any) => {
                                 if (className === 'task-list-item') {
                                   return (
@@ -577,7 +570,7 @@ export default function ChatPage() {
       <div className="p-4 md:p-8 shrink-0 bg-gradient-to-t from-[rgba(3,3,5,0.9)] via-[rgba(3,3,5,0.8)] to-transparent relative z-30 pt-20 backdrop-blur-[2px]">
         <div className="max-w-3xl mx-auto flex flex-col items-center">
           {/* Futuristic Floating Island Input Area */}
-          <div className={`w-full bg-[#0a0a0c]/90 backdrop-blur-3xl border border-white/10 rounded-[32px] p-2 relative group transition-all duration-300 shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.05)] focus-within:border-indigo-500/50 focus-within:shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_0_1px_rgba(99,102,241,0.5),0_0_20px_rgba(99,102,241,0.15)] flex ${input.split('\n').length > 1 ? 'items-end' : 'items-center'}`}>
+          <div className={`w-full bg-gradient-to-b from-[#0a0a0c]/90 to-[#111116]/90 backdrop-blur-3xl border border-white/10 rounded-[32px] p-2 relative group transition-all duration-500 shadow-[0_30px_60px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.05)] focus-within:border-indigo-400/50 focus-within:shadow-[0_30px_80px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.1),0_0_30px_rgba(99,102,241,0.2)] flex ${input.split('\n').length > 1 ? 'items-end' : 'items-center'}`}>
             <textarea
               rows={Math.min(input.split('\n').length, 5)}
               value={input}
@@ -632,11 +625,12 @@ function PromptCard({ icon, text, onClick, delay }: { icon?: React.ReactNode, te
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: delay, type: "spring", stiffness: 100 }}
-      whileHover={{ y: -5, scale: 1.02, backgroundColor: "rgba(255,255,255,0.05)" }}
+      whileHover={{ y: -5, scale: 1.02, borderColor: "rgba(99,102,241,0.3)" }}
       onClick={onClick}
-      className="flex items-center gap-4 p-5 rounded-[24px] bg-white/[0.02] border border-white/5 cursor-pointer transition-all group text-left backdrop-blur-md shadow-xl overflow-hidden relative"
+      className="flex items-center gap-4 p-5 rounded-[24px] bg-white/[0.02] border border-white/5 cursor-pointer transition-all group text-left backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.3)] overflow-hidden relative"
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-indigo-500/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/20 via-transparent to-transparent transition-opacity duration-500" />
       <div className="w-12 h-12 rounded-[16px] bg-white/[0.03] flex items-center justify-center text-white/50 group-hover:text-white group-hover:bg-indigo-500 transition-colors duration-300 shrink-0 border border-white/5 relative z-10 shadow-inner">
         {icon || <Info className="w-5 h-5" />}
       </div>
