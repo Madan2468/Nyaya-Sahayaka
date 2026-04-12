@@ -29,3 +29,6 @@ legal-agent-ai/.env
 
 # Local Netlify folder
 .netlify
+
+# OS generated files
+.DS_Store
