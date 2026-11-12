@@ -296,3 +296,4 @@ The system includes an automated evaluation harness (`benchmark_rag.py`) alongsi
   3. **National Cyber Crime Reporting Portal (MHA)**: `https://cybercrime.gov.in/`
   4. **Supreme Court of India Landmark Precedents**: *Lalita Kumari v. Govt. of U.P. (2014) 2 SCC 1* (cited in `services/legal_db.py` regarding mandatory FIR registration under CrPC §154).
   5. **Open Datasets**: Kaggle Indian Penal Code / CrPC datasets (`asaniczka/indian-penal-code-crpc-datasets`).
+
