@@ -30,5 +30,9 @@ legal-agent-ai/.env
 # Local Netlify folder
 .netlify
 
+# Local Vector & Cache Storage
+legal-agent-ai/data/qdrant_storage/
+legal-agent-ai/data/faiss_index/
+
 # OS generated files
 .DS_Store

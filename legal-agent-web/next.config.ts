@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
+  // Turbopack is dev-only; use Webpack for production builds (docker)
+  // Do NOT set experimental.turbopack here — it causes panics in `next build`
 };
 
 export default nextConfig;

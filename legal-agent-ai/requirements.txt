@@ -5,7 +5,13 @@ langchain
 langchain-core
 langchain-community
 langchain-huggingface
+langchain-google-genai
+langgraph
 sentence-transformers
+qdrant-client
+langchain-qdrant
+redis
+slowapi
 faiss-cpu
 huggingface-hub
 python-dotenv

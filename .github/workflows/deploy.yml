@@ -1,0 +1,104 @@
+name: Nyaya Sahayaka CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # Job 1: Test & Lint Backend (Python FastAPI + LangGraph)
+  # ─────────────────────────────────────────────────────────────
+  test-backend:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: "legal-agent-ai/requirements.txt"
+
+      - name: Install Dependencies
+        run: |
+          cd legal-agent-ai
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Phase 1 & 2 Verification Tests
+        env:
+          REDIS_URL: redis://localhost:6379/0
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          QDRANT_URL: ${{ secrets.QDRANT_URL }}
+          QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+        run: |
+          cd legal-agent-ai
+          python test_phase1.py
+          python test_phase2.py
+          python test_phase3.py
+
+  # ─────────────────────────────────────────────────────────────
+  # Job 2: Build & Validate Docker Containers
+  # ─────────────────────────────────────────────────────────────
+  build-containers:
+    needs: test-backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Backend Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./legal-agent-ai
+          file: ./legal-agent-ai/Dockerfile
+          push: false
+          tags: nyaya-backend:latest
+
+      - name: Build Frontend Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./legal-agent-web
+          file: ./legal-agent-web/Dockerfile
+          push: false
+          tags: nyaya-frontend:latest
+
+  # ─────────────────────────────────────────────────────────────
+  # Job 3: Automated Deployment Notification / Webhook Trigger
+  # ─────────────────────────────────────────────────────────────
+  deploy:
+    needs: build-containers
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Trigger Render Deployment (Backend)
+        if: ${{ secrets.RENDER_DEPLOY_HOOK != '' }}
+        run: |
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+
+      - name: Report Deployment Status
+        run: |
+          echo "🚀 Deployment successfully triggered for main branch."

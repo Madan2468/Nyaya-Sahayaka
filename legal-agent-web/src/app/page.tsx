@@ -109,7 +109,7 @@ export default function LandingPage() {
             
             <SignedIn>
               <Link href="/chat">
-                <motion.div animate={{ shadow: ["0 0 30px rgba(255,255,255,0.2)", "0 0 60px rgba(255,255,255,0.5)", "0 0 30px rgba(255,255,255,0.2)"] }} transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }} className="rounded-2xl">
+                <motion.div animate={{ boxShadow: ["0 0 30px rgba(255,255,255,0.2)", "0 0 60px rgba(255,255,255,0.5)", "0 0 30px rgba(255,255,255,0.2)"] }} transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }} className="rounded-2xl">
                   <Button size="lg" className="rounded-2xl relative overflow-hidden bg-white text-black hover:bg-neutral-200 hover:scale-105 transition-all text-lg px-10 py-8 shadow-[0_0_50px_rgba(255,255,255,0.3)] group z-10 border border-white/20">
                     <span className="relative z-10 flex items-center font-bold tracking-tight">
                       Start Consultation <ArrowRight className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" />
@@ -121,7 +121,7 @@ export default function LandingPage() {
             </SignedIn>
             <SignedOut>
               <SignInButton mode="modal">
-                <motion.div animate={{ shadow: ["0 0 30px rgba(255,255,255,0.2)", "0 0 60px rgba(255,255,255,0.5)", "0 0 30px rgba(255,255,255,0.2)"] }} transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }} className="rounded-2xl">
+                <motion.div animate={{ boxShadow: ["0 0 30px rgba(255,255,255,0.2)", "0 0 60px rgba(255,255,255,0.5)", "0 0 30px rgba(255,255,255,0.2)"] }} transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }} className="rounded-2xl">
                   <Button size="lg" className="rounded-2xl relative overflow-hidden bg-white text-black hover:bg-neutral-200 hover:scale-105 transition-all text-lg px-10 py-8 shadow-[0_0_50px_rgba(255,255,255,0.3)] group z-10 border border-white/20">
                     <span className="relative z-10 flex items-center font-bold tracking-tight">
                       Talk to AI Assistant <ArrowRight className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" />
